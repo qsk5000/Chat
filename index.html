@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>لوحة المحادثات — ميزان Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg0:#07071a; --bg1:#0d0d28; --bg2:#12122e;
+  --border:rgba(255,255,255,0.07);
+  --txt:rgba(255,255,255,0.88);
+  --dim:rgba(255,255,255,0.4);
+  --ghost:rgba(255,255,255,0.2);
+  --accent:#2DD4BF; --accent2:#14B8A6;
+  --green:#22c55e; --red:#ef4444; --amber:#f59e0b;
+}
+body{font-family:"Cairo",sans-serif;background:var(--bg0);color:var(--txt);height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+
+/* ── LOGIN SCREEN ── */
+#loginScreen{
+  flex:1;display:flex;align-items:center;justify-content:center;
+  padding:24px;
+}
+.login-card{
+  width:100%;max-width:380px;
+  background:var(--bg1);border:1px solid var(--border);
+  border-radius:24px;padding:36px 28px;
+  display:flex;flex-direction:column;gap:20px;align-items:center;
+}
+.login-logo{
+  width:64px;height:64px;border-radius:20px;
+  background:rgba(45,212,191,0.1);
+  display:flex;align-items:center;justify-content:center;
+  font-size:28px;color:var(--accent);
+}
+.login-title{font-size:20px;font-weight:900;color:#fff}
+.login-sub{font-size:12px;color:var(--dim);text-align:center}
+.login-input{
+  width:100%;padding:13px 16px;
+  border-radius:13px;border:1px solid var(--border);
+  background:rgba(255,255,255,0.04);
+  font-family:"Cairo",sans-serif;font-size:14px;color:var(--txt);
+  outline:none;transition:border-color 0.2s;
+}
+.login-input[type=password]{letter-spacing:4px}
+.login-input:focus{border-color:rgba(45,212,191,0.4)}
+.login-btn{
+  width:100%;padding:14px;border:none;border-radius:13px;
+  background:linear-gradient(135deg,var(--accent2),var(--accent));
+  color:#fff;font-family:"Cairo",sans-serif;font-size:14px;font-weight:900;
+  cursor:pointer;transition:opacity 0.2s;
+}
+.login-btn:hover{opacity:.9}
+.login-err{font-size:11px;color:var(--red);display:none;text-align:center}
+
+/* ── MAIN LAYOUT ── */
+#mainApp{display:none;flex:1;overflow:hidden;flex-direction:row}
+#mainApp.show{display:flex}
+
+/* ── SIDEBAR (conversations list) ── */
+.sidebar{
+  width:300px;flex-shrink:0;
+  background:var(--bg1);border-left:1px solid var(--border);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.sidebar-hdr{
+  padding:16px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:10px;flex-shrink:0;
+}
+.sidebar-title{font-size:15px;font-weight:900;color:#fff;flex:1}
+.badge-total{
+  background:rgba(45,212,191,0.15);color:var(--accent);
+  font-size:11px;font-weight:800;padding:3px 9px;border-radius:99px;
+}
+.search-box{
+  margin:10px 12px 6px;position:relative;
+}
+.search-box i{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--ghost);font-size:12px}
+.search-input{
+  width:100%;padding:9px 34px 9px 12px;
+  border-radius:11px;border:1px solid var(--border);
+  background:rgba(255,255,255,0.04);
+  font-family:"Cairo",sans-serif;font-size:12px;color:var(--txt);
+  outline:none;
+}
+.search-input::placeholder{color:var(--ghost)}
+#convList{flex:1;overflow-y:auto;padding:6px 8px}
+#convList::-webkit-scrollbar{width:3px}
+#convList::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px}
+
+/* conversation item */
+.conv-item{
+  display:flex;align-items:center;gap:11px;
+  padding:11px 10px;border-radius:13px;cursor:pointer;
+  transition:background 0.18s;margin-bottom:4px;
+  border:1px solid transparent;
+  -webkit-tap-highlight-color:transparent;
+}
+.conv-item:hover{background:rgba(255,255,255,0.04)}
+.conv-item.active{background:rgba(45,212,191,0.08);border-color:rgba(45,212,191,0.2)}
+.conv-avatar{
+  width:42px;height:42px;border-radius:13px;
+  background:rgba(255,255,255,0.06);
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;font-weight:900;color:var(--accent);
+  flex-shrink:0;position:relative;
+}
+.conv-unread-dot{
+  position:absolute;top:-3px;left:-3px;
+  width:16px;height:16px;border-radius:50%;
+  background:var(--red);border:2px solid var(--bg1);
+  font-size:9px;font-weight:900;color:#fff;
+  display:flex;align-items:center;justify-content:center;
+}
+.conv-info{flex:1;min-width:0}
+.conv-name{font-size:13px;font-weight:800;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.conv-preview{font-size:11px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.conv-time{font-size:9.5px;color:var(--ghost);flex-shrink:0}
+
+.conv-empty{padding:40px 20px;text-align:center;color:var(--ghost);font-size:12px}
+
+/* ── CHAT PANEL ── */
+.chat-panel{
+  flex:1;display:flex;flex-direction:column;overflow:hidden;
+  background:var(--bg0);
+}
+
+/* placeholder when no conv selected */
+.chat-placeholder{
+  flex:1;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  gap:14px;color:var(--ghost);
+}
+.chat-placeholder i{font-size:44px}
+.chat-placeholder p{font-size:13px;text-align:center;line-height:1.6}
+
+/* top bar */
+.chat-topbar{
+  display:flex;align-items:center;gap:12px;
+  padding:13px 16px;background:var(--bg1);
+  border-bottom:1px solid var(--border);flex-shrink:0;
+}
+.chat-topbar-avatar{
+  width:38px;height:38px;border-radius:12px;
+  background:rgba(45,212,191,0.12);
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;font-weight:900;color:var(--accent);flex-shrink:0;
+}
+.chat-topbar-info{flex:1}
+.chat-topbar-name{font-size:14px;font-weight:900;color:#fff}
+.chat-topbar-sub{font-size:10px;color:var(--dim)}
+
+/* messages */
+#adminMessages{
+  flex:1;overflow-y:auto;
+  padding:16px;display:flex;flex-direction:column;gap:10px;
+  scroll-behavior:smooth;
+}
+#adminMessages::-webkit-scrollbar{width:3px}
+#adminMessages::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px}
+
+.msg{display:flex;flex-direction:column;max-width:72%}
+.msg.from-student{align-self:flex-end;align-items:flex-end}
+.msg.from-admin{align-self:flex-start;align-items:flex-start}
+.msg-bubble{
+  padding:10px 14px;border-radius:18px;
+  font-size:13px;line-height:1.55;word-break:break-word;
+}
+.from-student .msg-bubble{
+  background:rgba(255,255,255,0.07);border:1px solid var(--border);
+  color:var(--txt);border-bottom-right-radius:5px;
+}
+.from-admin .msg-bubble{
+  background:linear-gradient(135deg,rgba(20,184,166,0.25),rgba(45,212,191,0.15));
+  border:1px solid rgba(45,212,191,0.2);
+  color:#e2f8f5;border-bottom-left-radius:5px;
+}
+.msg-meta{font-size:9.5px;color:var(--ghost);margin-top:4px;padding:0 4px}
+
+.msgs-empty{
+  flex:1;display:flex;align-items:center;justify-content:center;
+  color:var(--ghost);font-size:12px;text-align:center;
+}
+
+/* typing indicator */
+.typing-indicator{
+  display:none;align-self:flex-start;
+  padding:10px 14px;border-radius:18px;border-bottom-left-radius:5px;
+  background:var(--bg2);border:1px solid var(--border);
+  gap:4px;align-items:center;
+}
+.typing-indicator.show{display:flex}
+.typing-dot{width:6px;height:6px;border-radius:50%;background:var(--dim);animation:td 1.2s infinite}
+.typing-dot:nth-child(2){animation-delay:.2s}
+.typing-dot:nth-child(3){animation-delay:.4s}
+@keyframes td{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
+
+/* reply area */
+.reply-area{
+  display:flex;align-items:flex-end;gap:10px;
+  padding:12px 16px;border-top:1px solid var(--border);
+  background:var(--bg1);flex-shrink:0;
+}
+.reply-input{
+  flex:1;padding:11px 14px;
+  border-radius:13px;border:1px solid var(--border);
+  background:rgba(255,255,255,0.04);
+  font-family:"Cairo",sans-serif;font-size:13px;color:var(--txt);
+  outline:none;resize:none;max-height:100px;
+  transition:border-color 0.2s;direction:rtl;line-height:1.5;
+}
+.reply-input::placeholder{color:var(--ghost)}
+.reply-input:focus{border-color:rgba(45,212,191,0.35)}
+.reply-send{
+  width:42px;height:42px;border-radius:13px;
+  background:linear-gradient(135deg,var(--accent2),var(--accent));
+  border:none;color:#fff;font-size:15px;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;flex-shrink:0;
+  transition:opacity 0.18s,transform 0.18s;
+}
+.reply-send:active{opacity:.8;transform:scale(.92)}
+.reply-send:disabled{opacity:.4;cursor:not-allowed}
+
+/* date divider */
+.date-div{
+  display:flex;align-items:center;gap:8px;padding:4px 0;
+}
+.date-div span{font-size:9px;color:var(--ghost);white-space:nowrap;font-weight:700}
+.date-div::before,.date-div::after{content:"";flex:1;height:1px;background:var(--border)}
+
+/* ── TOP NAV TABS ── */
+.top-nav{
+  display:flex;align-items:center;gap:0;
+  background:var(--bg1);border-bottom:1px solid var(--border);
+  padding:0 16px;flex-shrink:0;
+}
+.top-tab{
+  padding:14px 18px;font-size:13px;font-weight:800;color:var(--dim);
+  cursor:pointer;border-bottom:2px solid transparent;
+  transition:color 0.2s,border-color 0.2s;white-space:nowrap;
+  -webkit-tap-highlight-color:transparent;display:flex;align-items:center;gap:7px;
+}
+.top-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.top-tab i{font-size:13px}
+
+/* ── STUDENTS PANEL ── */
+#studentsPanel{
+  flex:1;display:none;flex-direction:column;overflow:hidden;
+  background:var(--bg0);
+}
+#studentsPanel.active{display:flex}
+
+.sp-toolbar{
+  display:flex;align-items:center;gap:10px;
+  padding:14px 16px;border-bottom:1px solid var(--border);
+  background:var(--bg1);flex-shrink:0;flex-wrap:wrap;
+}
+.sp-input{
+  flex:1;min-width:120px;padding:10px 14px;
+  border-radius:11px;border:1px solid var(--border);
+  background:rgba(255,255,255,0.04);
+  font-family:"Cairo",sans-serif;font-size:13px;color:var(--txt);
+  outline:none;transition:border-color 0.2s;
+}
+.sp-input:focus{border-color:rgba(45,212,191,0.4)}
+.sp-input::placeholder{color:var(--ghost)}
+.sp-add-btn{
+  padding:10px 18px;border:none;border-radius:11px;
+  background:linear-gradient(135deg,var(--accent2),var(--accent));
+  color:#fff;font-family:"Cairo",sans-serif;font-size:13px;font-weight:800;
+  cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:7px;
+  transition:opacity 0.18s;-webkit-tap-highlight-color:transparent;
+}
+.sp-add-btn:active{opacity:.85}
+.sp-add-btn:disabled{opacity:.5;cursor:not-allowed}
+
+.sp-stats{
+  padding:12px 16px;display:flex;gap:10px;flex-shrink:0;
+}
+.sp-stat-chip{
+  padding:7px 14px;border-radius:10px;
+  background:var(--bg2);border:1px solid var(--border);
+  font-size:11px;font-weight:800;color:var(--dim);
+  display:flex;align-items:center;gap:6px;
+}
+.sp-stat-chip span{color:var(--accent);font-size:14px}
+
+#studentsList{
+  flex:1;overflow-y:auto;padding:10px 14px;
+  display:flex;flex-direction:column;gap:8px;
+}
+#studentsList::-webkit-scrollbar{width:3px}
+#studentsList::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px}
+
+.student-row{
+  display:flex;align-items:center;gap:12px;
+  padding:12px 14px;border-radius:14px;
+  background:var(--bg1);border:1px solid var(--border);
+  transition:border-color 0.18s;
+}
+.student-row:hover{border-color:rgba(255,255,255,0.12)}
+.student-code-badge{
+  padding:6px 12px;border-radius:9px;
+  background:rgba(45,212,191,0.1);border:1px solid rgba(45,212,191,0.2);
+  font-size:13px;font-weight:900;color:var(--accent);
+  font-family:monospace;letter-spacing:1px;flex-shrink:0;
+}
+.student-meta{flex:1}
+.student-name{font-size:13px;font-weight:800;color:#fff}
+.student-date{font-size:10px;color:var(--ghost);margin-top:2px}
+.student-del{
+  width:32px;height:32px;border-radius:9px;
+  background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.15);
+  color:rgba(239,68,68,0.6);font-size:12px;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:background 0.18s,color 0.18s;
+  -webkit-tap-highlight-color:transparent;flex-shrink:0;
+}
+.student-del:hover{background:rgba(239,68,68,0.15);color:#ef4444}
+
+.sp-empty{
+  flex:1;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:10px;color:var(--ghost);text-align:center;
+}
+.sp-empty i{font-size:36px;opacity:.4}
+.sp-empty p{font-size:12px;line-height:1.6}
+
+.sp-toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
+  padding:10px 20px;border-radius:12px;
+  background:var(--bg2);border:1px solid var(--border);
+  font-size:12px;font-weight:800;color:#fff;
+  opacity:0;transition:opacity 0.3s,transform 0.3s;
+  pointer-events:none;white-space:nowrap;z-index:9999;
+}
+.sp-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.sp-toast.success{border-color:rgba(34,197,94,0.3);color:#86efac}
+.sp-toast.error{border-color:rgba(239,68,68,0.3);color:#fca5a5}
+
+  .sidebar{width:100%;position:absolute;inset:0;z-index:10;display:none}
+  .sidebar.mob-show{display:flex}
+  .chat-panel{flex:1}
+  .mob-back{display:flex!important}
+}
+.mob-back{display:none;width:34px;height:34px;border-radius:10px;background:var(--bg2);border:1px solid var(--border);color:var(--dim);font-size:13px;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+</style>
+</head>
+<body>
+
+<!-- ── LOGIN ── -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo"><i class="fa-solid fa-shield-halved"></i></div>
+    <div class="login-title">لوحة المحادثات</div>
+    <div class="login-sub">منصة الميزان — قسم المتابعة</div>
+    <input class="login-input" id="adminPass" type="password" placeholder="كلمة المرور">
+    <div class="login-err" id="loginErr">❌ كلمة مرور خاطئة</div>
+    <button class="login-btn" onclick="adminLogin()">
+      <i class="fa-solid fa-right-to-bracket"></i> دخول
+    </button>
+  </div>
+</div>
+
+<!-- ── MAIN ── -->
+<div id="mainApp">
+
+  <!-- TOP NAV TABS -->
+  <div class="top-nav">
+    <div class="top-tab active" id="tabChats" onclick="switchTab('chats')">
+      <i class="fa-solid fa-comments"></i> المحادثات
+    </div>
+    <div class="top-tab" id="tabStudents" onclick="switchTab('students')">
+      <i class="fa-solid fa-users"></i> إدارة الطلاب
+    </div>
+  </div>
+
+  <!-- CHATS LAYOUT -->
+  <div id="chatsLayout" style="display:flex;flex:1;overflow:hidden">
+
+    <!-- SIDEBAR -->
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-hdr">
+        <i class="fa-solid fa-comments" style="color:var(--accent);font-size:16px"></i>
+        <div class="sidebar-title">المحادثات</div>
+        <span class="badge-total" id="totalBadge">0</span>
+      </div>
+      <div class="search-box">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input class="search-input" id="searchInput" placeholder="بحث بالكود..." oninput="filterConvs(this.value)">
+      </div>
+      <div id="convList"><div class="conv-empty">لا توجد محادثات بعد</div></div>
+    </div>
+
+    <!-- CHAT PANEL -->
+    <div class="chat-panel">
+      <div class="chat-placeholder" id="chatPlaceholder">
+        <i class="fa-regular fa-comment-dots"></i>
+        <p>اختر محادثة من القائمة<br>للرد على الطالب</p>
+      </div>
+      <div id="activeChat" style="display:none;flex:1;flex-direction:column;overflow:hidden">
+        <div class="chat-topbar">
+          <button class="mob-back" id="mobBack" onclick="showSidebar()"><i class="fa-solid fa-chevron-right"></i></button>
+          <div class="chat-topbar-avatar" id="topAvatar">MZ</div>
+          <div class="chat-topbar-info">
+            <div class="chat-topbar-name" id="topName">—</div>
+            <div class="chat-topbar-sub" id="topSub">جارٍ التحميل...</div>
+          </div>
+        </div>
+        <div id="adminMessages">
+          <div class="msgs-empty" id="msgsEmpty">لا توجد رسائل بعد</div>
+          <div class="typing-indicator" id="adminTyping">
+            <div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>
+          </div>
+        </div>
+        <div class="reply-area">
+          <button class="reply-send" id="replySendBtn" onclick="adminReply()">
+            <i class="fa-solid fa-paper-plane"></i>
+          </button>
+          <textarea class="reply-input" id="replyInput" rows="1" placeholder="اكتب ردّك هنا..."
+            oninput="autoResize(this)"
+            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();adminReply()}"></textarea>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- STUDENTS PANEL -->
+  <div id="studentsPanel">
+    <div class="sp-toolbar">
+      <input class="sp-input" id="newCode" placeholder="كود الطالب (مثال: MZ-1001)" maxlength="20"
+        oninput="this.value=this.value.toUpperCase()"
+        onkeydown="if(event.key==='Enter')addStudent()">
+      <input class="sp-input" id="newName" placeholder="اسم الطالب (اختياري)" maxlength="40" style="max-width:180px">
+      <button class="sp-add-btn" id="addBtn" onclick="addStudent()">
+        <i class="fa-solid fa-plus"></i> إضافة
+      </button>
+    </div>
+    <div class="sp-stats">
+      <div class="sp-stat-chip"><span id="stuCount">0</span> طالب مشترك</div>
+    </div>
+    <div id="studentsList">
+      <div class="sp-empty" id="spEmpty">
+        <i class="fa-solid fa-users-slash"></i>
+        <p>لا يوجد طلاب بعد<br>أضف أول طالب من الأعلى</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- TOAST -->
+<div class="sp-toast" id="spToast"></div>
+
+<script type="module">
+import { initializeApp }   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, onValue, onChildAdded, off, push, set, get, increment }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+// ═══ CONFIG ═══
+const ADMIN_PASS = "mizan2026"; // غيّر هذا لكلمة مرور قوية
+const TG_TOKEN   = "8664749931:AAGLnIHnBew-hxzcLp1jjchTnIdHNVAGBl8";
+const TG_CHATID  = "1067709858";
+
+async function notifyTG(studentCode, text) {
+  const msg = `📩 *رسالة جديدة — ميزان*\n\n👤 الطالب: \`${studentCode}\`\n💬 ${text}`;
+  try {
+    await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: TG_CHATID, text: msg, parse_mode: "Markdown" })
+    });
+  } catch(e) {}
+}
+const FB = {
+  apiKey: "AIzaSyCL7hbXqwzErzrshZOXjszErbS4t9LSWs8",
+  authDomain: "amimizaniq.firebaseapp.com",
+  databaseURL: "https://amimizaniq-default-rtdb.firebaseio.com",
+  projectId: "amimizaniq",
+  storageBucket: "amimizaniq.firebasestorage.app",
+  messagingSenderId: "644598552588",
+  appId: "1:644598552588:web:fb226a15704bb65c377629"
+};
+const app = initializeApp(FB);
+const db  = getDatabase(app);
+
+// ═══ STATE ═══
+let allConvs      = {};   // { code: infoObj }
+let activeCode    = null;
+let msgListenerRef = null;
+let seenKeys      = new Set();
+
+// ═══ TABS ═══
+window.switchTab = function(tab) {
+  document.getElementById("tabChats").classList.toggle("active", tab==="chats");
+  document.getElementById("tabStudents").classList.toggle("active", tab==="students");
+  document.getElementById("chatsLayout").style.display = tab==="chats" ? "flex" : "none";
+  document.getElementById("studentsPanel").classList.toggle("active", tab==="students");
+  if (tab==="students") loadStudents();
+};
+
+// ═══ STUDENTS MANAGEMENT ═══
+let allStudents = {};
+
+function loadStudents() {
+  onValue(ref(db, "StudentPortal"), (snap) => {
+    allStudents = snap.val() || {};
+    renderStudents(allStudents);
+  });
+}
+
+function renderStudents(data) {
+  const list  = document.getElementById("studentsList");
+  const empty = document.getElementById("spEmpty");
+  const keys  = Object.keys(data);
+  document.getElementById("stuCount").textContent = keys.length;
+
+  if (!keys.length) {
+    list.innerHTML = '';
+    list.appendChild(empty);
+    empty.style.display = "flex";
+    return;
+  }
+  empty.style.display = "none";
+
+  list.innerHTML = keys.map(code => {
+    const s    = data[code] || {};
+    const name = s.name || "—";
+    const date = s.addedAt ? new Date(s.addedAt).toLocaleDateString("ar-IQ") : "";
+    return `
+      <div class="student-row" id="sr-${code}">
+        <div class="student-code-badge">${escHtml(code)}</div>
+        <div class="student-meta">
+          <div class="student-name">${escHtml(name)}</div>
+          <div class="student-date">${date ? "أُضيف: " + date : "بدون تاريخ"}</div>
+        </div>
+        <button class="student-del" onclick="deleteStudent('${code}')" title="حذف">
+          <i class="fa-solid fa-trash-can"></i>
+        </button>
+      </div>`;
+  }).join("");
+}
+
+window.addStudent = async function() {
+  const codeEl = document.getElementById("newCode");
+  const nameEl = document.getElementById("newName");
+  const code   = codeEl.value.trim().toUpperCase();
+  const name   = nameEl.value.trim() || "طالب";
+  if (!code) { codeEl.focus(); showToast("أدخل كود الطالب", "error"); return; }
+  if (allStudents[code]) { showToast("الكود موجود مسبقاً ✋", "error"); return; }
+
+  const btn = document.getElementById("addBtn");
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+  try {
+    await set(ref(db, `StudentPortal/${code}`), {
+      name, addedAt: Date.now(), active: true
+    });
+    codeEl.value = "";
+    nameEl.value = "";
+    showToast(`✅ تم إضافة ${code}`, "success");
+  } catch(e) {
+    showToast("فشل الإضافة — تحقق من Rules", "error");
+  }
+  btn.disabled = false;
+  btn.innerHTML = '<i class="fa-solid fa-plus"></i> إضافة';
+};
+
+window.deleteStudent = async function(code) {
+  if (!confirm(`حذف الطالب ${code}؟`)) return;
+  try {
+    await set(ref(db, `StudentPortal/${code}`), null);
+    showToast(`🗑️ تم حذف ${code}`, "success");
+  } catch(e) {
+    showToast("فشل الحذف — تحقق من Rules", "error");
+  }
+};
+
+function showToast(msg, type="success") {
+  const t = document.getElementById("spToast");
+  t.textContent = msg;
+  t.className   = `sp-toast ${type} show`;
+  setTimeout(() => t.classList.remove("show"), 2800);
+}
+
+// ═══ LOGIN ═══
+window.adminLogin = function() {
+  const pass = document.getElementById("adminPass").value;
+  if (pass !== ADMIN_PASS) {
+    document.getElementById("loginErr").style.display = "block";
+    return;
+  }
+  document.getElementById("loginScreen").style.display = "none";
+  document.getElementById("mainApp").classList.add("show");
+  startConvListener();
+};
+
+document.getElementById("adminPass").addEventListener("keydown", e => {
+  if (e.key === "Enter") window.adminLogin();
+});
+
+// ═══ CONVERSATIONS REALTIME LIST ═══
+function startConvListener() {
+  const chatsRef = ref(db, "chats");
+  onValue(chatsRef, (snap) => {
+    allConvs = {};
+    snap.forEach(child => {
+      const val  = child.val() || {};
+      const info = val.info || {};
+
+      // حتى لو ما في info، نشوف آخر رسالة من messages مباشرة
+      let lastMsg = info.lastMsg || "";
+      let lastAt  = info.lastAt  || 0;
+      let unread  = info.unreadAdmin || 0;
+
+      // إذا في messages بس ما في info، نستخرج البيانات من messages
+      if (!lastMsg && val.messages) {
+        const msgs = Object.values(val.messages);
+        const last = msgs[msgs.length - 1];
+        if (last) {
+          lastMsg = last.text || "";
+          lastAt  = last.timestamp || 0;
+          // عدّ الرسائل من الطالب كـ unread
+          unread  = msgs.filter(m => m.sender === "student").length;
+        }
+      }
+
+      allConvs[child.key] = {
+        code: child.key,
+        lastMsg, lastAt, unreadAdmin: unread
+      };
+    });
+    renderConvList(allConvs);
+  });
+}
+
+function renderConvList(convs) {
+  const list = document.getElementById("convList");
+  const keys = Object.keys(convs).sort((a,b) => (convs[b].lastAt||0) - (convs[a].lastAt||0));
+
+  document.getElementById("totalBadge").textContent = keys.length;
+
+  if (!keys.length) {
+    list.innerHTML = '<div class="conv-empty">لا توجد محادثات بعد</div>';
+    return;
+  }
+
+  list.innerHTML = keys.map(k => {
+    const c = convs[k];
+    const unread = c.unreadAdmin || 0;
+    const time   = c.lastAt ? fmtTime(c.lastAt) : "";
+    const preview = c.lastMsg || "لا توجد رسائل بعد";
+    return `
+      <div class="conv-item${k===activeCode?' active':''}" onclick="selectConv('${k}')">
+        <div class="conv-avatar">
+          ${k.slice(-2)}
+          ${unread > 0 ? `<div class="conv-unread-dot">${unread>9?'9+':unread}</div>` : ''}
+        </div>
+        <div class="conv-info">
+          <div class="conv-name">${escHtml(k)}</div>
+          <div class="conv-preview">${escHtml(preview)}</div>
+        </div>
+        <div class="conv-time">${time}</div>
+      </div>`;
+  }).join("");
+}
+
+window.filterConvs = function(q) {
+  if (!q) { renderConvList(allConvs); return; }
+  const filtered = {};
+  Object.keys(allConvs).filter(k => k.includes(q.toUpperCase()))
+    .forEach(k => filtered[k] = allConvs[k]);
+  renderConvList(filtered);
+};
+
+// ═══ SELECT CONVERSATION ═══
+window.selectConv = function(code) {
+  activeCode = code;
+
+  // Mobile: hide sidebar
+  document.getElementById("sidebar").classList.remove("mob-show");
+
+  // Update header
+  document.getElementById("topName").textContent = code;
+  document.getElementById("topSub").textContent  = "جارٍ تحميل الرسائل...";
+  document.getElementById("topAvatar").textContent = code.slice(-2);
+
+  // Show chat panel
+  document.getElementById("chatPlaceholder").style.display = "none";
+  const ac = document.getElementById("activeChat");
+  ac.style.display = "flex";
+
+  // Clear messages
+  const msgs = document.getElementById("adminMessages");
+  const typing = document.getElementById("adminTyping");
+  msgs.innerHTML = '';
+  msgs.appendChild(typing);
+  document.getElementById("msgsEmpty").style.display = "flex";
+  msgs.prepend(document.getElementById("msgsEmpty"));
+  seenKeys.clear();
+
+  // Reset unread
+  set(ref(db, `chats/${code}/info/unreadAdmin`), 0).catch(()=>{});
+
+  // Start realtime listener for messages
+  startMsgListener(code);
+
+  // Update sidebar highlight
+  renderConvList(allConvs);
+};
+
+// ═══ MESSAGES REALTIME LISTENER ═══
+async function startMsgListener(code) {
+  if (msgListenerRef) { off(msgListenerRef); msgListenerRef = null; }
+
+  const msgsRef = ref(db, `chats/${code}/messages`);
+  msgListenerRef = msgsRef;
+
+  const msgs  = document.getElementById("adminMessages");
+  const empty = document.getElementById("msgsEmpty");
+  const typing= document.getElementById("adminTyping");
+
+  // أولاً: حمّل الرسائل الموجودة مرة وحدة
+  try {
+    const snap = await get(msgsRef);
+    if (snap.exists()) {
+      empty.style.display = "none";
+      snap.forEach(child => {
+        seenKeys.add(child.key);
+        appendAdminMsg(child.val(), code, msgs, typing);
+      });
+      msgs.scrollTop = msgs.scrollHeight;
+    }
+  } catch(e) {}
+
+  document.getElementById("topSub").textContent = "متصل الآن";
+
+  // ثانياً: استمع للرسائل الجديدة فقط (بعد اللي شفناها)
+  onChildAdded(msgsRef, (snap) => {
+    if (seenKeys.has(snap.key)) return; // تجاهل القديمة
+    seenKeys.add(snap.key);
+
+    const msg = snap.val();
+    empty.style.display = "none";
+    appendAdminMsg(msg, code, msgs, typing);
+    msgs.scrollTop = msgs.scrollHeight;
+
+    // إشعار تيليغرام للرسائل الجديدة من الطالب فقط
+    if (msg.sender === "student") notifyTG(code, msg.text);
+  });
+}
+
+function appendAdminMsg(msg, code, msgs, typing) {
+  const div = document.createElement("div");
+  div.className = `msg from-${msg.sender}`;
+  const t = msg.timestamp ? fmtTime(msg.timestamp) : "";
+  const senderLabel = msg.sender === "admin" ? "أنت" : code;
+  div.innerHTML = `
+    <div class="msg-bubble">${escHtml(msg.text)}</div>
+    <div class="msg-meta">${senderLabel} · ${t}</div>`;
+  msgs.insertBefore(div, typing);
+}
+
+// ═══ ADMIN REPLY ═══
+window.adminReply = async function() {
+  if (!activeCode) return;
+  const input = document.getElementById("replyInput");
+  const text  = input.value.trim();
+  if (!text) return;
+
+  input.value = "";
+  input.style.height = "";
+  document.getElementById("replySendBtn").disabled = true;
+
+  try {
+    await push(ref(db, `chats/${activeCode}/messages`), {
+      text, sender: "admin", timestamp: Date.now()
+    });
+    await set(ref(db, `chats/${activeCode}/info/lastMsg`),  `↩ ${text}`);
+    await set(ref(db, `chats/${activeCode}/info/lastAt`),   Date.now());
+  } catch(e) { input.value = text; }
+
+  document.getElementById("replySendBtn").disabled = false;
+  input.focus();
+};
+
+// ═══ MOBILE ═══
+window.showSidebar = function() {
+  document.getElementById("sidebar").classList.add("mob-show");
+};
+
+// ═══ HELPERS ═══
+window.autoResize = function(el) {
+  el.style.height = "auto";
+  el.style.height = Math.min(el.scrollHeight, 100) + "px";
+};
+
+function fmtTime(ts) {
+  const d = new Date(ts);
+  const now = new Date();
+  const today = now.toDateString();
+  if (d.toDateString() === today) {
+    return d.toLocaleTimeString("ar-IQ", { hour:"2-digit", minute:"2-digit" });
+  }
+  return d.toLocaleDateString("ar-IQ", { day:"numeric", month:"short" });
+}
+
+function escHtml(str) {
+  return String(str||"")
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;").replace(/"/g,"&quot;")
+    .replace(/\n/g,"<br>");
+}
+</script>
+</body>
+</html>
